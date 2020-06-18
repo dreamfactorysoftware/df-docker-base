@@ -37,9 +37,7 @@ RUN LANG=C.UTF-8 add-apt-repository ppa:ondrej/php -y && \
     ## Install Python2 Bunch & Python3 Munch
     apt install -y --no-install-recommends --allow-unauthenticated python python-pip python3 python3-pip python-setuptools python3-setuptools && \
     pip install bunch && \
-    pip3 install munch && \
-    ## Install Async and Lodash
-    npm install -g async lodash
+    pip3 install munch
 
 # Additional Drivers
 RUN apt-get update && \
@@ -72,7 +70,9 @@ RUN apt-get update && \
     curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php && \
     php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer && \
     ## Configure Sendmail
-    echo 'sendmail_path = "/usr/sbin/ssmtp -t"' > /etc/php/7.2/cli/conf.d/mail.ini
-
+    echo 'sendmail_path = "/usr/sbin/ssmtp -t"' > /etc/php/7.2/cli/conf.d/mail.ini && \
+    ## Install Async and Lodash
+    npm install -g async lodash
+    
 # Clean up APT when done.
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
