@@ -1,2 +1,2 @@
-# df-base-img
+# df-docker-base
 Base Docker image for df-docker
