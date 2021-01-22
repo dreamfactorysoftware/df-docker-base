@@ -67,8 +67,9 @@ RUN apt-get update && \
     curl -sL https://deb.nodesource.com/setup_10.x | bash - && \
     apt-get install -y --no-install-recommends --allow-unauthenticated nodejs && \
     ## Install Composer
-    curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php && \
-    php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer && \
+    curl -sS https://getcomposer.org/installer | php && \
+    mv composer.phar /usr/local/bin/composer && \
+    chmod +x /usr/local/bin/composer && \
     ## Configure Sendmail
     echo 'sendmail_path = "/usr/sbin/ssmtp -t"' > /etc/php/7.2/cli/conf.d/mail.ini && \
     ## Install Async and Lodash
