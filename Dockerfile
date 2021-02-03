@@ -35,7 +35,11 @@ RUN LANG=C.UTF-8 add-apt-repository ppa:ondrej/php -y && \
     pecl install igbinary && \
     pecl install pcs-1.3.7 && \
     pecl install sqlsrv && \
-    pecl install pdo_sqlsrv
+    pecl install pdo_sqlsrv && \
+    ## Install Python2 Bunch & Python3 Munch
+    apt install -y --no-install-recommends --allow-unauthenticated python python-pip python3 python3-pip python-setuptools python3-setuptools && \
+    pip install bunch && \
+    pip3 install munch
 
 # Additional Drivers
 RUN apt-get update && \
