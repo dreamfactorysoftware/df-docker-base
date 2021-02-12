@@ -1,6 +1,6 @@
 FROM ubuntu:xenial
 
-RUN apt-get update -y && apt-get install -y --no-install-recommends software-properties-common git curl cron npm zip unzip ca-certificates apt-transport-https lsof mcrypt libmcrypt-dev libreadline-dev wget sudo nginx nodejs build-essential unixodbc-dev
+RUN apt-get update -y && apt-get install -y --no-install-recommends software-properties-common git curl cron npm zip unzip ca-certificates apt-transport-https lsof mcrypt libmcrypt-dev libreadline-dev wget sudo nginx nodejs build-essential unixodbc-dev gcc cmake
 
 # Install PHP Repo
 RUN LANG=C.UTF-8 add-apt-repository ppa:ondrej/php -y && \
@@ -25,6 +25,10 @@ RUN LANG=C.UTF-8 add-apt-repository ppa:ondrej/php -y && \
     php7.3-gd \
     php7.3-sybase \
     php7.3-fpm \
+    php7.3-odbc \
+    php7.3-pdo \
+    php7.3-json \
+    php7.3-dev \
     php-pear \
     php-pecl-http \
     php-raphf \
@@ -75,7 +79,26 @@ RUN apt-get update && \
     ## Configure Sendmail
     echo 'sendmail_path = "/usr/sbin/ssmtp -t"' > /etc/php/7.3/cli/conf.d/mail.ini && \
     ## Install Async and Lodash
-    npm install -g async lodash
+    npm install -g async lodash && \
+    # Install Hive driver
+    mkdir /opt/hive && \
+    cd /opt/hive && \
+    curl --fail -O https://odbc-drivers.s3.amazonaws.com/apache-hive/maprhiveodbc_2.6.1.1001-2_amd64.deb && \
+    dpkg -i maprhiveodbc_2.6.1.1001-2_amd64.deb && \
+    test -f /opt/mapr/hiveodbc/lib/64/libmaprhiveodbc64.so && \
+    rm maprhiveodbc_2.6.1.1001-2_amd64.deb && \
+    export HIVE_SERVER_ODBC_DRIVER_PATH=/opt/mapr/hiveodbc/lib/64/libmaprhiveodbc64.so && \
+    # Install Hive driver - end
+    # Build and install pdo_snowflake
+    git clone https://github.com/snowflakedb/pdo_snowflake.git /opt/snowflake && \
+    cd /opt/snowflake && \
+    export PHP_HOME=/usr && \
+    /opt/snowflake/scripts/build_pdo_snowflake.sh && \
+    cp /opt/snowflake/modules/pdo_snowflake.so /usr/lib/php/20180731 && \
+    cp /opt/snowflake/libsnowflakeclient/cacert.pem /etc/php/7.3/fpm/conf.d && \
+    echo "extension=pdo_snowflake.so \n pdo_snowflake.cacert=/etc/php/7.3/fpm/conf.d/cacert.pem" > /etc/php/7.3/fpm/conf.d/20-pdo_snowflake.ini && \
+    rm -rf /opt/snowflake
+    # Build and install pdo_snowflake - end
     
 # Clean up APT when done.
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
