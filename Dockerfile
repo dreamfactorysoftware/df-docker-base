@@ -1,11 +1,12 @@
-FROM ubuntu:xenial
+FROM ubuntu:bionic
 
-RUN apt-get update -y && apt-get install -y --no-install-recommends software-properties-common git curl cron npm zip unzip ca-certificates apt-transport-https lsof mcrypt libmcrypt-dev libreadline-dev wget sudo nginx nodejs build-essential unixodbc-dev gcc cmake
+RUN apt-get update -y && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends software-properties-common git curl cron npm zip unzip ca-certificates apt-transport-https lsof mcrypt libmcrypt-dev libreadline-dev wget sudo nginx nodejs build-essential unixodbc-dev gcc cmake
 
 # Install PHP Repo
 RUN LANG=C.UTF-8 add-apt-repository ppa:ondrej/php -y && \
     ## Update the system
-    apt-get update && apt-get install -y --no-install-recommends --allow-unauthenticated \
+    apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --allow-unauthenticated \
+    gpg-agent \
     ## PHP Dependencies and PECL
     php7.3-common \
     php7.3-xml \
@@ -61,9 +62,9 @@ RUN apt-get update && \
     phpenmod -s ALL mongodb && \
     ## Install MS SQL Drivers
     curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
-    curl https://packages.microsoft.com/config/ubuntu/16.04/prod.list >/etc/apt/sources.list.d/mssql-release.list && \
+    curl https://packages.microsoft.com/config/ubuntu/18.04/prod.list >/etc/apt/sources.list.d/mssql-release.list && \
     apt-get update && \
-    ACCEPT_EULA=Y apt-get install -y msodbcsql17 mssql-tools && \
+    ACCEPT_EULA=Y DEBIAN_FRONTEND=noninteractive apt-get install -y msodbcsql17 mssql-tools && \
     echo "extension=sqlsrv.so" >"/etc/php/7.3/mods-available/sqlsrv.ini" && \
     phpenmod -s ALL sqlsrv && \
     ## DRIVERS FOR MSSQL (pdo_sqlsrv)
@@ -71,7 +72,7 @@ RUN apt-get update && \
     phpenmod -s ALL pdo_sqlsrv && \
     ## Node
     curl -sL https://deb.nodesource.com/setup_10.x | bash - && \
-    apt-get install -y --no-install-recommends --allow-unauthenticated nodejs && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --allow-unauthenticated nodejs && \
     ## Install Composer
     curl -sS https://getcomposer.org/installer | php && \
     mv composer.phar /usr/local/bin/composer && \
