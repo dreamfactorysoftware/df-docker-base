@@ -33,7 +33,7 @@ RUN LANG=C.UTF-8 add-apt-repository ppa:ondrej/php -y && \
     php-pear \
     php-pecl-http \
     php7.4-raphf \
-    php-propro && \
+    php7.4-propro && \
     pecl channel-update pecl.php.net && \
     pecl install mcrypt && \
     pecl install mongodb && \
