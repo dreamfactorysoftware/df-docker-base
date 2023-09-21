@@ -36,8 +36,8 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     pecl install mcrypt && \
     pecl install mongodb && \
     pecl install igbinary && \
-    pecl install sqlsrv && \
-    pecl install pdo_sqlsrv
+    pecl install sqlsrv-5.11.1 && \
+    pecl install pdo_sqlsrv-5.11.1
 
     ## Install Python2 Bunch & Python3 Munch
 RUN apt-get update && apt install -y --no-install-recommends --allow-unauthenticated python2 python3 python3-pip python-setuptools python3-setuptools && \
