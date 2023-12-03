@@ -1,6 +1,6 @@
 FROM ubuntu:22.04
 
-RUN apt-get update -y && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends software-properties-common gpg-agent git curl cron zip unzip ca-certificates apt-transport-https lsof mcrypt libmcrypt-dev libreadline-dev wget sudo nginx build-essential unixodbc-dev gcc cmake
+RUN apt-get update -y && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends software-properties-common gpg-agent git curl cron zip unzip ca-certificates apt-transport-https lsof mcrypt libmcrypt-dev libreadline-dev wget sudo nginx build-essential unixodbc-dev gcc cmake jq libaio1
 
 # Install PHP Repo
 RUN LANG=C.UTF-8 add-apt-repository ppa:ondrej/php -y && \
