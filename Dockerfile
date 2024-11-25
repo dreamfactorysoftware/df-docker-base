@@ -51,10 +51,11 @@ RUN apt-get update && \
     phpenmod -s ALL igbinary && \
     echo "extension=mongodb.so" > "/etc/php/8.3/mods-available/mongodb.ini" && \
     phpenmod -s ALL mongodb && \
-    curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
-    curl https://packages.microsoft.com/config/ubuntu/22.04/prod.list | tee /etc/apt/sources.list.d/mssql-release.list && \
+    # Install Microsoft repository and tools with proper key
+    curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-archive-keyring.gpg && \
+    echo "deb [arch=amd64,arm64,armhf signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/ubuntu/24.04/prod noble main" | tee /etc/apt/sources.list.d/mssql-release.list && \
     apt-get update && \
-    ACCEPT_EULA=Y DEBIAN_FRONTEND=noninteractive apt-get install -y msodbcsql18 mssql-tools && \
+    ACCEPT_EULA=Y DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends unixodbc-dev && \
     echo "extension=sqlsrv.so" > "/etc/php/8.3/mods-available/sqlsrv.ini" && \
     phpenmod -s ALL sqlsrv && \
     echo "extension=pdo_sqlsrv.so" > "/etc/php/8.3/mods-available/pdo_sqlsrv.ini" && \
@@ -72,12 +73,12 @@ RUN apt-get update && \
     dpkg -i maprhiveodbc_2.6.1.1001-2_amd64.deb && \
     test -f /opt/mapr/hiveodbc/lib/64/libmaprhiveodbc64.so && \
     rm maprhiveodbc_2.6.1.1001-2_amd64.deb && \
-    export HIVE_SERVER_ODBC_DRIVER_PATH=/opt/mapr/hiveodbc/lib/64/libmaprhiveodbc64.so && \
+    export HIVE_SERVER_ODBC_DRIVER_PATH=/opt/mapr/hiveodbc/lib/64/libmaprhiveodbc64.so; && \
     git clone --depth 1 https://github.com/snowflakedb/pdo_snowflake.git /opt/snowflake && \
     cd /opt/snowflake && \
     export PHP_HOME=/usr && \
     /opt/snowflake/scripts/build_pdo_snowflake.sh && \
-    cp /opt/snowflake/modules/pdo_snowflake.so /usr/lib/php/20210902 && \
+    cp /opt/snowflake/modules/pdo_snowflake.so /usr/lib/php/20230831/ && \
     cp /opt/snowflake/libsnowflakeclient/cacert.pem /etc/php/8.3/fpm/conf.d && \
     echo "extension=pdo_snowflake.so" > /etc/php/8.3/mods-available/pdo_snowflake.ini && \
     echo "pdo_snowflake.cacert=/etc/php/8.3/fpm/conf.d/cacert.pem" >> /etc/php/8.3/mods-available/pdo_snowflake.ini && \
