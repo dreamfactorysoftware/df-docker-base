@@ -1,6 +1,6 @@
 FROM ubuntu:24.04
 
-RUN apt-get update -y && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends software-properties-common gpg-agent git curl cron zip unzip ca-certificates apt-transport-https lsof mcrypt libmcrypt-dev libreadline-dev wget sudo nginx build-essential unixodbc-dev gcc cmake jq libaio1t64 python3 python3-pip python3-setuptools python3-venv
+RUN apt-get update -y && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends software-properties-common gpg-agent git curl cron zip unzip ca-certificates apt-transport-https lsof mcrypt libmcrypt-dev libreadline-dev wget sudo nginx build-essential unixodbc-dev gcc cmake jq libaio1t64 python3 python3-pip python3-setuptools python3-venv alien
 
 # Install PHP Repo
 RUN LANG=C.UTF-8 add-apt-repository ppa:ondrej/php -y && \
@@ -74,6 +74,26 @@ RUN apt-get update && \
     test -f /opt/mapr/hiveodbc/lib/64/libmaprhiveodbc64.so && \
     rm maprhiveodbc_2.6.1.1001-2_amd64.deb && \
     export HIVE_SERVER_ODBC_DRIVER_PATH=/opt/mapr/hiveodbc/lib/64/libmaprhiveodbc64.so; && \
+    mkdir /opt/dremio && \
+    cd /opt/dremio && \
+    curl --fail -O https://download.dremio.com/arrow-flight-sql-odbc-driver/arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm && \
+    RPM_FILE=$(ls arrow-flight-sql-odbc-driver-*.rpm) && \
+    alien --to-deb "$RPM_FILE" && \
+    DEB_FILE=$(ls arrow-flight-sql-odbc-driver*.deb) && \
+    dpkg -i "$DEB_FILE" && \
+    rm -f "$RPM_FILE" "$DEB_FILE" && \
+    test -f /opt/arrow-flight-sql-odbc-driver/lib64/libarrow-odbc.so.0.9.1.168 && \
+    export DREMIO_SERVER_ODBC_DRIVER_PATH=/opt/arrow-flight-sql-odbc-driver/lib64/libarrow-odbc.so.0.9.1.168 && \
+    mkdir /opt/databricks && \
+    cd /opt/databricks && \
+    curl --fail -O https://databricks-bi-artifacts.s3.us-east-2.amazonaws.com/simbaspark-drivers/odbc/2.8.2/SimbaSparkODBC-2.8.2.1013-Debian-64bit.zip && \
+    unzip -q SimbaSparkODBC-2.8.2.1013-Debian-64bit.zip && \
+    rm -f SimbaSparkODBC-2.8.2.1013-Debian-64bit.zip && \
+    rm -rf docs/ && \
+    dpkg -i simbaspark_2.8.2.1013-2_amd64.deb && \
+    test -f /opt/simba/spark/lib/64/libsparkodbc_sb64.so && \
+    rm simbaspark_2.8.2.1013-2_amd64.deb && \
+    export DATABRICKS_SERVER_ODBC_DRIVER_PATH=/opt/simba/spark/lib/64/libsparkodbc_sb64.so && \
     git clone --depth 1 https://github.com/snowflakedb/pdo_snowflake.git /opt/snowflake && \
     cd /opt/snowflake && \
     export PHP_HOME=/usr && \
