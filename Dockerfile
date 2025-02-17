@@ -73,7 +73,7 @@ RUN apt-get update && \
     dpkg -i maprhiveodbc_2.6.1.1001-2_amd64.deb && \
     test -f /opt/mapr/hiveodbc/lib/64/libmaprhiveodbc64.so && \
     rm maprhiveodbc_2.6.1.1001-2_amd64.deb && \
-    export HIVE_SERVER_ODBC_DRIVER_PATH=/opt/mapr/hiveodbc/lib/64/libmaprhiveodbc64.so; && \
+    export HIVE_SERVER_ODBC_DRIVER_PATH=/opt/mapr/hiveodbc/lib/64/libmaprhiveodbc64.so && \
     git clone --depth 1 https://github.com/snowflakedb/pdo_snowflake.git /opt/snowflake && \
     cd /opt/snowflake && \
     export PHP_HOME=/usr && \
