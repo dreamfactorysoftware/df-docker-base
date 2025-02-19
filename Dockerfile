@@ -60,6 +60,10 @@ RUN apt-get update && \
     phpenmod -s ALL sqlsrv && \
     echo "extension=pdo_sqlsrv.so" > "/etc/php/8.3/mods-available/pdo_sqlsrv.ini" && \
     phpenmod -s ALL pdo_sqlsrv && \
+    curl https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg && \
+    curl https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list && \
+    apt update && \
+    sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 && \
     curl -sL https://deb.nodesource.com/setup_20.x | bash - && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends nodejs && \
     curl -sS https://getcomposer.org/installer | php && \
