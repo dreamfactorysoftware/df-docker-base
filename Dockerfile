@@ -73,7 +73,7 @@ RUN apt-get update && \
     dpkg -i maprhiveodbc_2.6.1.1001-2_amd64.deb && \
     test -f /opt/mapr/hiveodbc/lib/64/libmaprhiveodbc64.so && \
     rm maprhiveodbc_2.6.1.1001-2_amd64.deb && \
-    export HIVE_SERVER_ODBC_DRIVER_PATH=/opt/mapr/hiveodbc/lib/64/libmaprhiveodbc64.so; && \
+    export HIVE_SERVER_ODBC_DRIVER_PATH=/opt/mapr/hiveodbc/lib/64/libmaprhiveodbc64.so && \
     mkdir /opt/dremio && \
     cd /opt/dremio && \
     curl --fail -O https://download.dremio.com/arrow-flight-sql-odbc-driver/arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm && \
