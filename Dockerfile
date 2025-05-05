@@ -1,12 +1,34 @@
 FROM ubuntu:24.04
 
-RUN apt-get update -y && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends software-properties-common gpg-agent git curl cron zip unzip ca-certificates apt-transport-https lsof mcrypt libmcrypt-dev libreadline-dev wget sudo nginx build-essential unixodbc-dev gcc cmake jq libaio1t64 python3 python3-pip python3-setuptools python3-venv alien
+# Install basic dependencies
+RUN apt-get update -y && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    software-properties-common \
+    curl \
+    unzip \
+    alien \
+    unixodbc-dev \
+    gpg-agent \
+    ca-certificates \
+    apt-transport-https \
+    libsasl2-modules-gssapi-mit \
+    git \
+    cron \
+    zip \
+    lsof \
+    mcrypt \
+    libmcrypt-dev \
+    libreadline-dev \
+    wget \
+    sudo \
+    nginx \
+    build-essential \
+    gcc \
+    cmake \
+    jq
 
 # Install PHP Repo
 RUN LANG=C.UTF-8 add-apt-repository ppa:ondrej/php -y && \
-    ## Update the system
-    apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --allow-unauthenticated \
-    ## PHP Dependencies
+    apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     php8.3-common \
     php8.3-xml \
     php8.3-cli \
@@ -27,10 +49,10 @@ RUN LANG=C.UTF-8 add-apt-repository ppa:ondrej/php -y && \
     php8.3-odbc \
     php8.3-pdo \
     php8.3-http \
-    php8.3-raphf 
+    php8.3-raphf
 
 # Install PECL extensions
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --allow-unauthenticated php-pear && \
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends php-pear && \
     pecl channel-update pecl.php.net && \
     pecl install mcrypt && \
     pecl install mongodb && \
@@ -38,67 +60,76 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     pecl install sqlsrv-5.11.1 && \
     pecl install pdo_sqlsrv-5.11.1
 
+# Install Python and required packages
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    python3-venv \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 # Create virtual environment and install Python packages
 RUN python3 -m venv /opt/venv && \
     /opt/venv/bin/pip install --upgrade pip && \
     /opt/venv/bin/pip install munch
 
-# Additional Drivers
-RUN apt-get update && \
-    echo "extension=mcrypt.so" > "/etc/php/8.3/mods-available/mcrypt.ini" && \
+# Install Node.js
+RUN curl -sL https://deb.nodesource.com/setup_20.x | bash - && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends nodejs && \
+    npm install -g async lodash
+
+# Configure PHP extensions
+RUN echo "extension=mcrypt.so" > "/etc/php/8.3/mods-available/mcrypt.ini" && \
     phpenmod -s ALL mcrypt && \
     echo "extension=igbinary.so" > "/etc/php/8.3/mods-available/igbinary.ini" && \
     phpenmod -s ALL igbinary && \
     echo "extension=mongodb.so" > "/etc/php/8.3/mods-available/mongodb.ini" && \
     phpenmod -s ALL mongodb && \
-    # Install Microsoft repository and tools with proper key
-    curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-archive-keyring.gpg && \
-    echo "deb [arch=amd64,arm64,armhf signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/ubuntu/24.04/prod noble main" | tee /etc/apt/sources.list.d/mssql-release.list && \
-    apt-get update && \
-    ACCEPT_EULA=Y DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends unixodbc-dev && \
     echo "extension=sqlsrv.so" > "/etc/php/8.3/mods-available/sqlsrv.ini" && \
     phpenmod -s ALL sqlsrv && \
     echo "extension=pdo_sqlsrv.so" > "/etc/php/8.3/mods-available/pdo_sqlsrv.ini" && \
-    phpenmod -s ALL pdo_sqlsrv && \
-    curl https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg && \
-    curl https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list && \
-    apt update && \
-    sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 && \
-    curl -sL https://deb.nodesource.com/setup_20.x | bash - && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends nodejs && \
-    curl -sS https://getcomposer.org/installer | php && \
+    phpenmod -s ALL pdo_sqlsrv
+
+# Install MS SQL Drivers
+RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
+    curl https://packages.microsoft.com/config/ubuntu/22.04/prod.list | tee /etc/apt/sources.list.d/mssql-release.list && \
+    apt-get update && \
+    ACCEPT_EULA=Y DEBIAN_FRONTEND=noninteractive apt-get install -y msodbcsql18 mssql-tools
+
+# Install Composer
+RUN curl -sS https://getcomposer.org/installer | php && \
     mv composer.phar /usr/local/bin/composer && \
     chmod +x /usr/local/bin/composer && \
-    echo 'sendmail_path = "/usr/sbin/ssmtp -t"' > /etc/php/8.3/cli/conf.d/mail.ini && \
-    npm install -g async lodash && \
-    mkdir /opt/hive && \
-    cd /opt/hive && \
-    curl --fail -O https://odbc-drivers.s3.amazonaws.com/apache-hive/maprhiveodbc_2.6.1.1001-2_amd64.deb && \
-    dpkg -i maprhiveodbc_2.6.1.1001-2_amd64.deb && \
-    test -f /opt/mapr/hiveodbc/lib/64/libmaprhiveodbc64.so && \
-    rm maprhiveodbc_2.6.1.1001-2_amd64.deb && \
-    export HIVE_SERVER_ODBC_DRIVER_PATH=/opt/mapr/hiveodbc/lib/64/libmaprhiveodbc64.so && \
-    mkdir /opt/dremio && \
+    echo 'sendmail_path = "/usr/sbin/ssmtp -t"' > /etc/php/8.3/cli/conf.d/mail.ini
+
+# Install Dremio ODBC driver
+RUN mkdir -p /opt/dremio/lib64 && \
     cd /opt/dremio && \
-    curl --fail -O https://download.dremio.com/arrow-flight-sql-odbc-driver/arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm && \
-    RPM_FILE=$(ls arrow-flight-sql-odbc-driver-*.rpm) && \
-    alien --to-deb "$RPM_FILE" && \
-    DEB_FILE=$(ls arrow-flight-sql-odbc-driver*.deb) && \
-    dpkg -i "$DEB_FILE" && \
-    rm -f "$RPM_FILE" "$DEB_FILE" && \
-    test -f /opt/arrow-flight-sql-odbc-driver/lib64/libarrow-odbc.so.0.9.1.168 && \
-    export DREMIO_SERVER_ODBC_DRIVER_PATH=/opt/arrow-flight-sql-odbc-driver/lib64/libarrow-odbc.so.0.9.1.168 && \
-    mkdir /opt/databricks && \
+    echo "Downloading Dremio driver..." && \
+    curl -v -L --fail -O https://download.dremio.com/arrow-flight-sql-odbc-driver/arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm && \
+    alien --to-deb arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm && \
+    dpkg -i arrow-flight-sql-odbc-driver_*.deb && \
+    mv /opt/arrow-flight-sql-odbc-driver/lib64/libarrow-odbc.so.0.9.5.470 /opt/dremio/lib64/libarrow-odbc.so && \
+    rm -rf /opt/arrow-flight-sql-odbc-driver arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm arrow-flight-sql-odbc-driver_*.deb && \
+    echo "Verifying installation..." && \
+    test -f /opt/dremio/lib64/libarrow-odbc.so && \
+    export DREMIO_SERVER_ODBC_DRIVER_PATH=/opt/dremio/lib64/libarrow-odbc.so
+
+# Install Databricks ODBC driver
+RUN mkdir -p /opt/databricks/lib64 && \
     cd /opt/databricks && \
     curl --fail -O https://databricks-bi-artifacts.s3.us-east-2.amazonaws.com/simbaspark-drivers/odbc/2.8.2/SimbaSparkODBC-2.8.2.1013-Debian-64bit.zip && \
     unzip -q SimbaSparkODBC-2.8.2.1013-Debian-64bit.zip && \
-    rm -f SimbaSparkODBC-2.8.2.1013-Debian-64bit.zip && \
-    rm -rf docs/ && \
+    echo "Installing Databricks driver..." && \
     dpkg -i simbaspark_2.8.2.1013-2_amd64.deb && \
-    test -f /opt/simba/spark/lib/64/libsparkodbc_sb64.so && \
-    rm simbaspark_2.8.2.1013-2_amd64.deb && \
-    export DATABRICKS_SERVER_ODBC_DRIVER_PATH=/opt/simba/spark/lib/64/libsparkodbc_sb64.so && \
-    git clone --depth 1 https://github.com/snowflakedb/pdo_snowflake.git /opt/snowflake && \
+    mv /opt/simba/spark/lib/64/libsparkodbc_sb64.so /opt/databricks/lib64/ && \
+    rm -rf /opt/simba SimbaSparkODBC-2.8.2.1013-Debian-64bit.zip docs/ simbaspark_2.8.2.1013-2_amd64.deb && \
+    echo "Verifying installation..." && \
+    test -f /opt/databricks/lib64/libsparkodbc_sb64.so && \
+    export DATABRICKS_SERVER_ODBC_DRIVER_PATH=/opt/databricks/lib64/libsparkodbc_sb64.so
+
+# Install Snowflake PDO driver
+RUN git clone --depth 1 https://github.com/snowflakedb/pdo_snowflake.git /opt/snowflake && \
     cd /opt/snowflake && \
     export PHP_HOME=/usr && \
     /opt/snowflake/scripts/build_pdo_snowflake.sh && \
