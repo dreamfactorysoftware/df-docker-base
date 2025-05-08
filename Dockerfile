@@ -103,30 +103,26 @@ RUN curl -sS https://getcomposer.org/installer | php && \
     echo 'sendmail_path = "/usr/sbin/ssmtp -t"' > /etc/php/8.3/cli/conf.d/mail.ini
 
 # Install Dremio ODBC driver
-RUN mkdir -p /opt/dremio/lib64 && \
-    cd /opt/dremio && \
+RUN cd /opt && \
     echo "Downloading Dremio driver..." && \
     curl -v -L --fail -O https://download.dremio.com/arrow-flight-sql-odbc-driver/arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm && \
     alien --to-deb arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm && \
     dpkg -i arrow-flight-sql-odbc-driver_*.deb && \
-    mv /opt/arrow-flight-sql-odbc-driver/lib64/libarrow-odbc.so.0.9.5.470 /opt/dremio/lib64/libarrow-odbc.so && \
-    rm -rf /opt/arrow-flight-sql-odbc-driver arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm arrow-flight-sql-odbc-driver_*.deb && \
+    rm -rf arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm arrow-flight-sql-odbc-driver_*.deb && \
     echo "Verifying installation..." && \
-    test -f /opt/dremio/lib64/libarrow-odbc.so && \
-    export DREMIO_SERVER_ODBC_DRIVER_PATH=/opt/dremio/lib64/libarrow-odbc.so
+    test -f /opt/arrow-flight-sql-odbc-driver/lib64/libarrow-odbc.so.0.9.5.470 && \
+    export DREMIO_SERVER_ODBC_DRIVER_PATH=/opt/arrow-flight-sql-odbc-driver/lib64/libarrow-odbc.so.0.9.5.470
 
 # Install Databricks ODBC driver
-RUN mkdir -p /opt/databricks/lib64 && \
-    cd /opt/databricks && \
+RUN cd /opt && \
     curl --fail -O https://databricks-bi-artifacts.s3.us-east-2.amazonaws.com/simbaspark-drivers/odbc/2.8.2/SimbaSparkODBC-2.8.2.1013-Debian-64bit.zip && \
     unzip -q SimbaSparkODBC-2.8.2.1013-Debian-64bit.zip && \
     echo "Installing Databricks driver..." && \
     dpkg -i simbaspark_2.8.2.1013-2_amd64.deb && \
-    mv /opt/simba/spark/lib/64/libsparkodbc_sb64.so /opt/databricks/lib64/ && \
-    rm -rf /opt/simba SimbaSparkODBC-2.8.2.1013-Debian-64bit.zip docs/ simbaspark_2.8.2.1013-2_amd64.deb && \
+    rm -rf SimbaSparkODBC-2.8.2.1013-Debian-64bit.zip docs/ simbaspark_2.8.2.1013-2_amd64.deb && \
     echo "Verifying installation..." && \
-    test -f /opt/databricks/lib64/libsparkodbc_sb64.so && \
-    export DATABRICKS_SERVER_ODBC_DRIVER_PATH=/opt/databricks/lib64/libsparkodbc_sb64.so
+    test -f /opt/simba/spark/lib/64/libsparkodbc_sb64.so && \
+    export DATABRICKS_SERVER_ODBC_DRIVER_PATH=/opt/simba/spark/lib/64/libsparkodbc_sb64.so
 
 # Install Snowflake PDO driver
 RUN git clone --depth 1 https://github.com/snowflakedb/pdo_snowflake.git /opt/snowflake && \
@@ -139,6 +135,14 @@ RUN git clone --depth 1 https://github.com/snowflakedb/pdo_snowflake.git /opt/sn
     echo "pdo_snowflake.cacert=/etc/php/8.3/fpm/conf.d/cacert.pem" >> /etc/php/8.3/mods-available/pdo_snowflake.ini && \
     phpenmod pdo_snowflake && \
     rm -rf /opt/snowflake
+
+# Install SAP HANA Client
+RUN mkdir -p /opt/hana/lib && \
+    cd /opt/hana/lib && \
+    echo "Downloading SAP HANA client library..." && \
+    curl -L "https://odbc-drivers.s3.us-east-1.amazonaws.com/sap-hana/libodbcHDB.so" -o libodbcHDB.so && \
+    echo "/opt/hana/lib" > /etc/ld.so.conf.d/sap.conf && \
+    ldconfig
 
 # Clean up APT when done.
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
