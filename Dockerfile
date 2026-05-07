@@ -131,8 +131,9 @@ RUN cd /opt && \
     dpkg -i arrow-flight-sql-odbc-driver_*.deb && \
     rm -rf arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm arrow-flight-sql-odbc-driver_*.deb && \
     echo "Verifying installation..." && \
-    test -f /opt/arrow-flight-sql-odbc-driver/lib64/libarrow-odbc.so.0.9.5.470 && \
-    export DREMIO_SERVER_ODBC_DRIVER_PATH=/opt/arrow-flight-sql-odbc-driver/lib64/libarrow-odbc.so.0.9.5.470
+    ls /opt/arrow-flight-sql-odbc-driver/lib64/libarrow-odbc.so* && \
+    DREMIO_SO=$(ls /opt/arrow-flight-sql-odbc-driver/lib64/libarrow-odbc.so.*.*.* 2>/dev/null | head -n1) && \
+    test -n "$DREMIO_SO" && export DREMIO_SERVER_ODBC_DRIVER_PATH="$DREMIO_SO"
 
 # Install Databricks ODBC driver
 RUN cd /opt && \
