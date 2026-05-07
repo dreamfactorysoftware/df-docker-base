@@ -71,8 +71,8 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     mkdir -p /opt/oracle && cd /opt/oracle && \
     curl -fsSL -O https://download.oracle.com/otn_software/linux/instantclient/2380000/instantclient-basic-linux.x64-23.8.0.25.04.zip && \
     curl -fsSL -O https://download.oracle.com/otn_software/linux/instantclient/2380000/instantclient-sdk-linux.x64-23.8.0.25.04.zip && \
-    unzip -q instantclient-basic-linux.x64-23.8.0.25.04.zip && \
-    unzip -q instantclient-sdk-linux.x64-23.8.0.25.04.zip && \
+    unzip -oq instantclient-basic-linux.x64-23.8.0.25.04.zip && \
+    unzip -oq instantclient-sdk-linux.x64-23.8.0.25.04.zip && \
     rm instantclient-basic-linux.x64-23.8.0.25.04.zip instantclient-sdk-linux.x64-23.8.0.25.04.zip && \
     ln -s /opt/oracle/instantclient_23_8 /opt/oracle/instantclient && \
     echo "/opt/oracle/instantclient" > /etc/ld.so.conf.d/oracle.conf && \
