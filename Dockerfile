@@ -29,36 +29,56 @@ RUN apt-get update -y && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-
 # Install PHP Repo
 RUN LANG=C.UTF-8 add-apt-repository ppa:ondrej/php -y && \
     apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    php8.3-common \
-    php8.3-xml \
-    php8.3-cli \
-    php8.3-curl \
-    php8.3-mysqlnd \
-    php8.3-sqlite \
-    php8.3-soap \
-    php8.3-mbstring \
-    php8.3-zip \
-    php8.3-bcmath \
-    php8.3-dev \
-    php8.3-ldap \
-    php8.3-pgsql \
-    php8.3-interbase \
-    php8.3-gd \
-    php8.3-sybase \
-    php8.3-fpm \
-    php8.3-odbc \
-    php8.3-pdo \
-    php8.3-http \
-    php8.3-raphf
+    php8.5-common \
+    php8.5-xml \
+    php8.5-cli \
+    php8.5-curl \
+    php8.5-mysqlnd \
+    php8.5-sqlite \
+    php8.5-soap \
+    php8.5-mbstring \
+    php8.5-zip \
+    php8.5-bcmath \
+    php8.5-dev \
+    php8.5-ldap \
+    php8.5-pgsql \
+    php8.5-interbase \
+    php8.5-gd \
+    php8.5-sybase \
+    php8.5-fpm \
+    php8.5-odbc \
+    php8.5-pdo \
+    php8.5-http \
+    php8.5-raphf
 
 # Install PECL extensions
+# NOTE: mongodb is pinned to 1.21.5 to satisfy mongodb/laravel-mongodb 5.7.x's
+# `ext-mongodb ^1.21|^2` constraint introduced in the Laravel 13 dependency stack.
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends php-pear && \
     pecl channel-update pecl.php.net && \
     pecl install mcrypt && \
-    pecl install mongodb && \
+    pecl install mongodb-2.1.1 && \
     pecl install igbinary && \
-    pecl install sqlsrv-5.11.1 && \
-    pecl install pdo_sqlsrv-5.11.1
+    pecl install sqlsrv-5.13.1 && \
+    pecl install pdo_sqlsrv-5.13.1
+
+# Install Oracle Instant Client + ext-oci8
+# Required by yajra/laravel-oci8 13.x (df-oracledb on Laravel 13).
+# Uses Oracle Instant Client 23.8 Basic + SDK; oci8 PECL extension pinned to 3.4.1
+# (latest stable supporting PHP 8.5 as of 2026-05).
+ENV LD_LIBRARY_PATH=/opt/oracle/instantclient:${LD_LIBRARY_PATH}
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends libaio1t64 && \
+    ln -sf /usr/lib/x86_64-linux-gnu/libaio.so.1t64 /usr/lib/x86_64-linux-gnu/libaio.so.1 && \
+    mkdir -p /opt/oracle && cd /opt/oracle && \
+    curl -fsSL -O https://download.oracle.com/otn_software/linux/instantclient/2380000/instantclient-basic-linux.x64-23.8.0.25.04.zip && \
+    curl -fsSL -O https://download.oracle.com/otn_software/linux/instantclient/2380000/instantclient-sdk-linux.x64-23.8.0.25.04.zip && \
+    unzip -oq instantclient-basic-linux.x64-23.8.0.25.04.zip && \
+    unzip -oq instantclient-sdk-linux.x64-23.8.0.25.04.zip && \
+    rm instantclient-basic-linux.x64-23.8.0.25.04.zip instantclient-sdk-linux.x64-23.8.0.25.04.zip && \
+    ln -s /opt/oracle/instantclient_23_8 /opt/oracle/instantclient && \
+    echo "/opt/oracle/instantclient" > /etc/ld.so.conf.d/oracle.conf && \
+    ldconfig && \
+    printf "instantclient,/opt/oracle/instantclient\n" | pecl install oci8-3.4.1
 
 # Install Python and required packages
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -79,16 +99,18 @@ RUN curl -sL https://deb.nodesource.com/setup_20.x | bash - && \
     npm install -g async lodash
 
 # Configure PHP extensions
-RUN echo "extension=mcrypt.so" > "/etc/php/8.3/mods-available/mcrypt.ini" && \
+RUN echo "extension=mcrypt.so" > "/etc/php/8.5/mods-available/mcrypt.ini" && \
     phpenmod -s ALL mcrypt && \
-    echo "extension=igbinary.so" > "/etc/php/8.3/mods-available/igbinary.ini" && \
+    echo "extension=igbinary.so" > "/etc/php/8.5/mods-available/igbinary.ini" && \
     phpenmod -s ALL igbinary && \
-    echo "extension=mongodb.so" > "/etc/php/8.3/mods-available/mongodb.ini" && \
+    echo "extension=mongodb.so" > "/etc/php/8.5/mods-available/mongodb.ini" && \
     phpenmod -s ALL mongodb && \
-    echo "extension=sqlsrv.so" > "/etc/php/8.3/mods-available/sqlsrv.ini" && \
+    echo "extension=sqlsrv.so" > "/etc/php/8.5/mods-available/sqlsrv.ini" && \
     phpenmod -s ALL sqlsrv && \
-    echo "extension=pdo_sqlsrv.so" > "/etc/php/8.3/mods-available/pdo_sqlsrv.ini" && \
-    phpenmod -s ALL pdo_sqlsrv
+    echo "extension=pdo_sqlsrv.so" > "/etc/php/8.5/mods-available/pdo_sqlsrv.ini" && \
+    phpenmod -s ALL pdo_sqlsrv && \
+    echo "extension=oci8.so" > "/etc/php/8.5/mods-available/oci8.ini" && \
+    phpenmod -s ALL oci8
 
 # Install MS SQL Drivers
 RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
@@ -100,7 +122,7 @@ RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
 RUN curl -sS https://getcomposer.org/installer | php && \
     mv composer.phar /usr/local/bin/composer && \
     chmod +x /usr/local/bin/composer && \
-    echo 'sendmail_path = "/usr/sbin/ssmtp -t"' > /etc/php/8.3/cli/conf.d/mail.ini
+    echo 'sendmail_path = "/usr/sbin/ssmtp -t"' > /etc/php/8.5/cli/conf.d/mail.ini
 
 # Install Dremio ODBC driver
 RUN cd /opt && \
@@ -110,8 +132,9 @@ RUN cd /opt && \
     dpkg -i arrow-flight-sql-odbc-driver_*.deb && \
     rm -rf arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm arrow-flight-sql-odbc-driver_*.deb && \
     echo "Verifying installation..." && \
-    test -f /opt/arrow-flight-sql-odbc-driver/lib64/libarrow-odbc.so.0.9.5.470 && \
-    export DREMIO_SERVER_ODBC_DRIVER_PATH=/opt/arrow-flight-sql-odbc-driver/lib64/libarrow-odbc.so.0.9.5.470
+    ls /opt/arrow-flight-sql-odbc-driver/lib64/libarrow-odbc.so* && \
+    DREMIO_SO=$(ls /opt/arrow-flight-sql-odbc-driver/lib64/libarrow-odbc.so.*.*.* 2>/dev/null | head -n1) && \
+    test -n "$DREMIO_SO" && export DREMIO_SERVER_ODBC_DRIVER_PATH="$DREMIO_SO"
 
 # Install Databricks ODBC driver
 RUN cd /opt && \
@@ -129,10 +152,10 @@ RUN git clone --depth 1 https://github.com/snowflakedb/pdo_snowflake.git /opt/sn
     cd /opt/snowflake && \
     export PHP_HOME=/usr && \
     /opt/snowflake/scripts/build_pdo_snowflake.sh && \
-    cp /opt/snowflake/modules/pdo_snowflake.so /usr/lib/php/20230831/ && \
-    cp /opt/snowflake/libsnowflakeclient/cacert.pem /etc/php/8.3/fpm/conf.d && \
-    echo "extension=pdo_snowflake.so" > /etc/php/8.3/mods-available/pdo_snowflake.ini && \
-    echo "pdo_snowflake.cacert=/etc/php/8.3/fpm/conf.d/cacert.pem" >> /etc/php/8.3/mods-available/pdo_snowflake.ini && \
+    cp /opt/snowflake/modules/pdo_snowflake.so "$(php-config --extension-dir)/" && \
+    cp /opt/snowflake/libsnowflakeclient/cacert.pem /etc/php/8.5/fpm/conf.d && \
+    echo "extension=pdo_snowflake.so" > /etc/php/8.5/mods-available/pdo_snowflake.ini && \
+    echo "pdo_snowflake.cacert=/etc/php/8.5/fpm/conf.d/cacert.pem" >> /etc/php/8.5/mods-available/pdo_snowflake.ini && \
     phpenmod pdo_snowflake && \
     rm -rf /opt/snowflake
 
