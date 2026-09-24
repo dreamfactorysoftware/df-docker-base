@@ -1,4 +1,5 @@
 FROM ubuntu:24.04
+ARG TARGETARCH
 
 # Install basic dependencies
 RUN apt-get update -y && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -34,7 +35,7 @@ RUN LANG=C.UTF-8 add-apt-repository ppa:ondrej/php -y && \
     php8.5-cli \
     php8.5-curl \
     php8.5-mysqlnd \
-    php8.5-sqlite \
+    php8.5-sqlite3 \
     php8.5-soap \
     php8.5-mbstring \
     php8.5-zip \
@@ -68,13 +69,14 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
 # (latest stable supporting PHP 8.5 as of 2026-05).
 ENV LD_LIBRARY_PATH=/opt/oracle/instantclient:${LD_LIBRARY_PATH}
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends libaio1t64 && \
-    ln -sf /usr/lib/x86_64-linux-gnu/libaio.so.1t64 /usr/lib/x86_64-linux-gnu/libaio.so.1 && \
+    ln -sf /usr/lib/$(uname -m)-linux-gnu/libaio.so.1t64 /usr/lib/$(uname -m)-linux-gnu/libaio.so.1 && \
+    if [ "$TARGETARCH" = "arm64" ]; then IC_ARCH=arm64; else IC_ARCH=x64; fi && \
     mkdir -p /opt/oracle && cd /opt/oracle && \
-    curl -fsSL -O https://download.oracle.com/otn_software/linux/instantclient/2380000/instantclient-basic-linux.x64-23.8.0.25.04.zip && \
-    curl -fsSL -O https://download.oracle.com/otn_software/linux/instantclient/2380000/instantclient-sdk-linux.x64-23.8.0.25.04.zip && \
-    unzip -oq instantclient-basic-linux.x64-23.8.0.25.04.zip && \
-    unzip -oq instantclient-sdk-linux.x64-23.8.0.25.04.zip && \
-    rm instantclient-basic-linux.x64-23.8.0.25.04.zip instantclient-sdk-linux.x64-23.8.0.25.04.zip && \
+    curl -fsSL -O https://download.oracle.com/otn_software/linux/instantclient/2380000/instantclient-basic-linux.${IC_ARCH}-23.8.0.25.04.zip && \
+    curl -fsSL -O https://download.oracle.com/otn_software/linux/instantclient/2380000/instantclient-sdk-linux.${IC_ARCH}-23.8.0.25.04.zip && \
+    unzip -oq instantclient-basic-linux.${IC_ARCH}-23.8.0.25.04.zip && \
+    unzip -oq instantclient-sdk-linux.${IC_ARCH}-23.8.0.25.04.zip && \
+    rm instantclient-basic-linux.${IC_ARCH}-23.8.0.25.04.zip instantclient-sdk-linux.${IC_ARCH}-23.8.0.25.04.zip && \
     ln -s /opt/oracle/instantclient_23_8 /opt/oracle/instantclient && \
     echo "/opt/oracle/instantclient" > /etc/ld.so.conf.d/oracle.conf && \
     ldconfig && \
@@ -116,7 +118,7 @@ RUN echo "extension=mcrypt.so" > "/etc/php/8.5/mods-available/mcrypt.ini" && \
 RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
     curl https://packages.microsoft.com/config/ubuntu/22.04/prod.list | tee /etc/apt/sources.list.d/mssql-release.list && \
     apt-get update && \
-    ACCEPT_EULA=Y DEBIAN_FRONTEND=noninteractive apt-get install -y msodbcsql18 mssql-tools
+    ACCEPT_EULA=Y DEBIAN_FRONTEND=noninteractive apt-get install -y msodbcsql18 mssql-tools18
 
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php && \
@@ -124,8 +126,8 @@ RUN curl -sS https://getcomposer.org/installer | php && \
     chmod +x /usr/local/bin/composer && \
     echo 'sendmail_path = "/usr/sbin/ssmtp -t"' > /etc/php/8.5/cli/conf.d/mail.ini
 
-# Install Dremio ODBC driver
-RUN cd /opt && \
+# Install Dremio ODBC driver (no arm64 build upstream)
+RUN if [ "$TARGETARCH" = "arm64" ]; then echo "Dremio ODBC: skipped on arm64 (no upstream driver)"; exit 0; fi && cd /opt && \
     echo "Downloading Dremio driver..." && \
     curl -v -L --fail -O https://download.dremio.com/arrow-flight-sql-odbc-driver/arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm && \
     alien --to-deb arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm && \
@@ -136,8 +138,8 @@ RUN cd /opt && \
     DREMIO_SO=$(ls /opt/arrow-flight-sql-odbc-driver/lib64/libarrow-odbc.so.*.*.* 2>/dev/null | head -n1) && \
     test -n "$DREMIO_SO" && export DREMIO_SERVER_ODBC_DRIVER_PATH="$DREMIO_SO"
 
-# Install Databricks ODBC driver
-RUN cd /opt && \
+# Install Databricks ODBC driver (no arm64 build upstream)
+RUN if [ "$TARGETARCH" = "arm64" ]; then echo "Databricks ODBC: skipped on arm64 (no upstream driver)"; exit 0; fi && cd /opt && \
     curl --fail -O https://databricks-bi-artifacts.s3.us-east-2.amazonaws.com/simbaspark-drivers/odbc/2.8.2/SimbaSparkODBC-2.8.2.1013-Debian-64bit.zip && \
     unzip -q SimbaSparkODBC-2.8.2.1013-Debian-64bit.zip && \
     echo "Installing Databricks driver..." && \
@@ -159,8 +161,8 @@ RUN git clone --depth 1 https://github.com/snowflakedb/pdo_snowflake.git /opt/sn
     phpenmod pdo_snowflake && \
     rm -rf /opt/snowflake
 
-# Install SAP HANA Client
-RUN mkdir -p /opt/hana/lib && \
+# Install SAP HANA Client (no arm64 build mirrored)
+RUN if [ "$TARGETARCH" = "arm64" ]; then echo "SAP HANA ODBC: skipped on arm64 (no arm64 client mirrored)"; exit 0; fi && mkdir -p /opt/hana/lib && \
     cd /opt/hana/lib && \
     echo "Downloading SAP HANA client library..." && \
     curl -L "https://odbc-drivers.s3.us-east-1.amazonaws.com/sap-hana/libodbcHDB.so" -o libodbcHDB.so && \
