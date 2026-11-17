@@ -95,8 +95,8 @@ RUN python3 -m venv /opt/venv && \
     /opt/venv/bin/pip install --upgrade pip && \
     /opt/venv/bin/pip install munch
 
-# Install Node.js
-RUN curl -sL https://deb.nodesource.com/setup_20.x | bash - && \
+# Install Node.js 22 LTS (Node 20 has reached end of life)
+RUN curl -sL https://deb.nodesource.com/setup_22.x | bash - && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends nodejs && \
     npm install -g async lodash
 
