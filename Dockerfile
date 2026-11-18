@@ -82,12 +82,18 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     ldconfig && \
     printf "instantclient,/opt/oracle/instantclient\n" | pecl install oci8-3.4.1
 
-# Install Python and required packages
+# Install Python and required packages.
+# python3-munch: DreamFactory's python3 scripting engine runs the system interpreter
+# (`python3` on PATH, i.e. /usr/bin/python3, unless DF_PYTHON3_PATH is set) and its
+# wrapper does `from munch import munchify`, so munch must be importable there, not only
+# in /opt/venv. Without it every python3 script fails with ModuleNotFoundError.
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
     python3-venv \
     python3-dev \
+    python3-munch \
+    && /usr/bin/python3 -c "import munch" \
     && rm -rf /var/lib/apt/lists/*
 
 # Create virtual environment and install Python packages
